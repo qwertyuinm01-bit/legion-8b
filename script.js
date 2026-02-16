@@ -1,4 +1,3 @@
-// Твои обновленные ключи
 const firebaseConfig = {
     apiKey: "AIzaSyALxgy8p51UxJH4uyJuLUsiCw-3_mD_DPA",
     authDomain: "legion-8b.firebaseapp.com",
@@ -10,23 +9,19 @@ const firebaseConfig = {
     measurementId: "G-BB61V78C07"
 };
 
-// Подключаем Firebase через CDN (чтобы работало на GitHub Pages)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// --- ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК ---
-const menuItems = document.querySelectorAll('.menu-item');
-const views = document.querySelectorAll('.view');
-
-menuItems.forEach(item => {
+// --- ВКЛАДКИ ---
+document.querySelectorAll('.menu-item').forEach(item => {
     item.addEventListener('click', () => {
         const page = item.getAttribute('data-page');
-        menuItems.forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
         item.classList.add('active');
-        views.forEach(v => {
+        document.querySelectorAll('.view').forEach(v => {
             v.classList.remove('active');
             if(v.id === page) v.classList.add('active');
         });
@@ -36,56 +31,58 @@ menuItems.forEach(item => {
 // --- ЧАСЫ ---
 function updateTime() {
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('ru-RU', { hour12: false });
-    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' }).toUpperCase();
-    if(document.getElementById('current-time')) document.getElementById('current-time').innerText = timeStr;
-    if(document.getElementById('current-date')) document.getElementById('current-date').innerText = dateStr;
+    const timeElem = document.getElementById('current-time');
+    const dateElem = document.getElementById('current-date');
+    if(timeElem) timeElem.innerText = now.toLocaleTimeString('ru-RU', { hour12: false });
+    if(dateElem) dateElem.innerText = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' }).toUpperCase();
 }
 setInterval(updateTime, 1000);
 updateTime();
 
-// --- АДМИНКА (5 кликов по аватарке) ---
-let clickCount = 0;
-const avatar = document.querySelector('.user-profile img') || document.querySelector('.bot-avatar');
-
-if(avatar) {
-    avatar.addEventListener('click', () => {
-        clickCount++;
-        if (clickCount === 5) {
-            const pass = prompt("ВВЕДИТЕ ПАРОЛЬ:");
+// --- АДМИНКА (КЛИКАЙ 5 РАЗ ПО ЗАГОЛОВКУ "LEGION 8B" ИЛИ АВАТАРКЕ) ---
+let clicks = 0;
+// Добавляем слушатель на всё, что похоже на заголовок или аватарку
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.logo-area') || e.target.closest('.user-profile') || e.target.tagName === 'H1') {
+        clicks++;
+        if (clicks === 5) {
+            const pass = prompt("PASSWORD:");
             if (pass === "8b_top") {
-                alert("РЕЖИМ РЕДАКТИРОВАНИЯ! Кликни по тексту (объявление или СОР), измени его и кликни в сторону.");
+                alert("ADMOD ACTIVATED! Тыкай в текст и меняй его.");
                 enableEditing();
             }
-            clickCount = 0;
+            clicks = 0;
         }
-    });
-}
+    } else {
+        clicks = 0; // Сброс, если кликнул мимо
+    }
+});
 
 function enableEditing() {
-    const elements = document.querySelectorAll('.announcement-body p, .exam-subject, .exam-date, .tile p');
-    elements.forEach(el => {
+    const selectors = '.announcement-body p, .exam-subject, .exam-date, .tile p, #current-date';
+    document.querySelectorAll(selectors).forEach(el => {
         el.contentEditable = "true";
-        el.style.border = "1px dashed #00f3ff";
-        el.addEventListener('blur', () => saveData()); 
+        el.style.border = "2px solid #00f3ff";
+        el.style.background = "rgba(0, 243, 255, 0.1)";
+        el.addEventListener('blur', () => {
+            set(ref(db, 'siteData/'), {
+                announcement: document.querySelector('.announcement-body p')?.innerText || "",
+                examSubject: document.querySelector('.exam-subject')?.innerText || "",
+                examDate: document.querySelector('.exam-date')?.innerText || ""
+            });
+        });
     });
 }
 
-function saveData() {
-    const data = {
-        announcement: document.querySelector('.announcement-body p')?.innerText || "",
-        examSubject: document.querySelector('.exam-subject')?.innerText || "",
-        examDate: document.querySelector('.exam-date')?.innerText || ""
-    };
-    set(ref(db, 'siteData/'), data);
-}
-
-// --- ПОЛУЧЕНИЕ ДАННЫХ ИЗ БАЗЫ ---
+// --- ПОЛУЧЕНИЕ ДАННЫХ ---
 onValue(ref(db, 'siteData/'), (snapshot) => {
     const data = snapshot.val();
     if (data) {
-        if(document.querySelector('.announcement-body p')) document.querySelector('.announcement-body p').innerText = data.announcement;
-        if(document.querySelector('.exam-subject')) document.querySelector('.exam-subject').innerText = data.examSubject;
-        if(document.querySelector('.exam-date')) document.querySelector('.exam-date').innerText = data.examDate;
+        const ann = document.querySelector('.announcement-body p');
+        const subj = document.querySelector('.exam-subject');
+        const date = document.querySelector('.exam-date');
+        if(ann) ann.innerText = data.announcement;
+        if(subj) subj.innerText = data.examSubject;
+        if(date) date.innerText = data.examDate;
     }
 });
