@@ -1,8 +1,8 @@
-// Твои ключи (уже вставлены)
+// Твои обновленные ключи
 const firebaseConfig = {
     apiKey: "AIzaSyALxgy8p51UxJH4uyJuLUsiCw-3_mD_DPA",
     authDomain: "legion-8b.firebaseapp.com",
-    databaseURL: "https://legion-8b-default-rtdb.firebaseio.com", // Я добавил эту строку, она нужна для базы
+    databaseURL: "https://legion-8b-default-rtdb.europe-west1.firebasedatabase.app", 
     projectId: "legion-8b",
     storageBucket: "legion-8b.firebasestorage.app",
     messagingSenderId: "532391425488",
@@ -10,7 +10,7 @@ const firebaseConfig = {
     measurementId: "G-BB61V78C07"
 };
 
-// Подключаем Firebase
+// Подключаем Firebase через CDN (чтобы работало на GitHub Pages)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -54,7 +54,7 @@ if(avatar) {
         if (clickCount === 5) {
             const pass = prompt("ВВЕДИТЕ ПАРОЛЬ:");
             if (pass === "8b_top") {
-                alert("РЕЖИМ РЕДАКТИРОВАНИЯ! Кликни по тексту, чтобы изменить его. Чтобы сохранить — просто кликни в другое место.");
+                alert("РЕЖИМ РЕДАКТИРОВАНИЯ! Кликни по тексту (объявление или СОР), измени его и кликни в сторону.");
                 enableEditing();
             }
             clickCount = 0;
@@ -63,12 +63,11 @@ if(avatar) {
 }
 
 function enableEditing() {
-    // Выбираем элементы для редактирования (добавь свои классы если нужно)
     const elements = document.querySelectorAll('.announcement-body p, .exam-subject, .exam-date, .tile p');
     elements.forEach(el => {
         el.contentEditable = "true";
         el.style.border = "1px dashed #00f3ff";
-        el.addEventListener('blur', () => saveData()); // Сохраняем при потере фокуса
+        el.addEventListener('blur', () => saveData()); 
     });
 }
 
@@ -81,7 +80,7 @@ function saveData() {
     set(ref(db, 'siteData/'), data);
 }
 
-// --- ПОЛУЧЕНИЕ ДАННЫХ ---
+// --- ПОЛУЧЕНИЕ ДАННЫХ ИЗ БАЗЫ ---
 onValue(ref(db, 'siteData/'), (snapshot) => {
     const data = snapshot.val();
     if (data) {
