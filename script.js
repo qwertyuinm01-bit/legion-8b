@@ -1,75 +1,92 @@
-document.addEventListener('DOMContentLoaded', () => {
-    
-    // 1. ПЕРЕКЛЮЧЕНИЕ СТРАНИЦ (Твой код)
-    const navItems = document.querySelectorAll('.menu-item');
-    const views = document.querySelectorAll('.view');
+// Твои ключи (уже вставлены)
+const firebaseConfig = {
+    apiKey: "AIzaSyALxgy8p51UxJH4uyJuLUsiCw-3_mD_DPA",
+    authDomain: "legion-8b.firebaseapp.com",
+    databaseURL: "https://legion-8b-default-rtdb.firebaseio.com", // Я добавил эту строку, она нужна для базы
+    projectId: "legion-8b",
+    storageBucket: "legion-8b.firebasestorage.app",
+    messagingSenderId: "532391425488",
+    appId: "1:532391425488:web:2321b2ecbe1bf5574a75d5",
+    measurementId: "G-BB61V78C07"
+};
 
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            item.style.transform = 'scale(0.95)';
-            setTimeout(() => item.style.transform = 'scale(1)', 100);
+// Подключаем Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-            navItems.forEach(i => i.classList.remove('active'));
-            views.forEach(v => v.classList.remove('active'));
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-            item.classList.add('active');
-            const target = item.getAttribute('data-page');
-            const targetEl = document.getElementById(target);
-            if(targetEl) targetEl.classList.add('active');
+// --- ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК ---
+const menuItems = document.querySelectorAll('.menu-item');
+const views = document.querySelectorAll('.view');
+
+menuItems.forEach(item => {
+    item.addEventListener('click', () => {
+        const page = item.getAttribute('data-page');
+        menuItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        views.forEach(v => {
+            v.classList.remove('active');
+            if(v.id === page) v.classList.add('active');
         });
     });
+});
 
-    // 2. ЦИТАТЫ (Твой код)
-    const quotes = [
-        "«8Б — это когда ты не выучил, но сдал на 5».",
-        "«В нашей ДНК — хаос и гениальность».",
-        "«Тишина в классе — это признак того, что у всех сел телефон».",
-        "«Мы — легенды, о которых будут шептаться в столовой»."
-    ];
+// --- ЧАСЫ ---
+function updateTime() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ru-RU', { hour12: false });
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' }).toUpperCase();
+    if(document.getElementById('current-time')) document.getElementById('current-time').innerText = timeStr;
+    if(document.getElementById('current-date')) document.getElementById('current-date').innerText = dateStr;
+}
+setInterval(updateTime, 1000);
+updateTime();
 
-    const quoteEl = document.getElementById('dynamic-quote');
-    if(quoteEl) quoteEl.innerText = quotes[Math.floor(Math.random() * quotes.length)];
+// --- АДМИНКА (5 кликов по аватарке) ---
+let clickCount = 0;
+const avatar = document.querySelector('.user-profile img') || document.querySelector('.bot-avatar');
 
-    // 3. ЗАДАЧИ (Твой код)
-    const tasks = document.querySelectorAll('.task-card input');
-    tasks.forEach(task => {
-        task.addEventListener('change', () => {
-            task.parentElement.style.opacity = task.checked ? '0.4' : '1';
-        });
-    });
-
-    // --- НОВОЕ: ФУНКЦИЯ ЖИВЫХ ЧАСОВ ---
-    function updateClock() {
-        const timeElement = document.getElementById('current-time');
-        const dateElement = document.getElementById('current-date');
-        
-        if (timeElement && dateElement) {
-            const now = new Date();
-            
-            // Время в формате 00:00:00
-            timeElement.textContent = now.toLocaleTimeString('ru-RU', { hour12: false });
-            
-            // Дата в формате: MONDAY, 16 FEB
-            const options = { weekday: 'long', day: 'numeric', month: 'short' };
-            dateElement.textContent = now.toLocaleDateString('en-US', options).toUpperCase();
+if(avatar) {
+    avatar.addEventListener('click', () => {
+        clickCount++;
+        if (clickCount === 5) {
+            const pass = prompt("ВВЕДИТЕ ПАРОЛЬ:");
+            if (pass === "8b_top") {
+                alert("РЕЖИМ РЕДАКТИРОВАНИЯ! Кликни по тексту, чтобы изменить его. Чтобы сохранить — просто кликни в другое место.");
+                enableEditing();
+            }
+            clickCount = 0;
         }
+    });
+}
+
+function enableEditing() {
+    // Выбираем элементы для редактирования (добавь свои классы если нужно)
+    const elements = document.querySelectorAll('.announcement-body p, .exam-subject, .exam-date, .tile p');
+    elements.forEach(el => {
+        el.contentEditable = "true";
+        el.style.border = "1px dashed #00f3ff";
+        el.addEventListener('blur', () => saveData()); // Сохраняем при потере фокуса
+    });
+}
+
+function saveData() {
+    const data = {
+        announcement: document.querySelector('.announcement-body p')?.innerText || "",
+        examSubject: document.querySelector('.exam-subject')?.innerText || "",
+        examDate: document.querySelector('.exam-date')?.innerText || ""
+    };
+    set(ref(db, 'siteData/'), data);
+}
+
+// --- ПОЛУЧЕНИЕ ДАННЫХ ---
+onValue(ref(db, 'siteData/'), (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        if(document.querySelector('.announcement-body p')) document.querySelector('.announcement-body p').innerText = data.announcement;
+        if(document.querySelector('.exam-subject')) document.querySelector('.exam-subject').innerText = data.examSubject;
+        if(document.querySelector('.exam-date')) document.querySelector('.exam-date').innerText = data.examDate;
     }
-
-    // --- НОВОЕ: СИМУЛЯЦИЯ НАГРУЗКИ СИСТЕМЫ ---
-    function simulateSystemLoad() {
-        const fills = document.querySelectorAll('.fill');
-        
-        fills.forEach(fill => {
-            // Генерируем случайное число от 30 до 90 для имитации активности
-            const randomLoad = Math.floor(Math.random() * (90 - 30 + 1)) + 30;
-            fill.style.width = randomLoad + '%';
-        });
-    }
-
-    // Запускаем часы сразу и ставим интервал 1 секунда
-    updateClock();
-    setInterval(updateClock, 1000);
-
-    // Запускаем обновление полосок нагрузки каждые 3 секунды
-    setInterval(simulateSystemLoad, 3000);
 });
